@@ -33,10 +33,13 @@ const RED : Color = Color::new(Vec3::new(1.0,0.0,0.0));
 
 
 
-const TEST_SPHERE : Sphere = Sphere::new(Vec3::new(0.0,0.0,-1.0), 0.5);
+const TEST_SPHERE_1 : Sphere = Sphere::new(Vec3::new(-1.0,0.0,-2.0), 0.5);
+const TEST_SPHERE_2 : Sphere = Sphere::new(Vec3::new(1.0,0.0,-2.0), 0.5);
+const GROUND : Sphere = Sphere::new(Vec3::new(0.0,-100.5,-1.0),100.0);
 
-fn ray_color(r : Ray) -> Color {
-    let hr = TEST_SPHERE.hit(&r, 0.0, 100000.0);
+
+fn ray_color(r : Ray, world : &HittableList) -> Color {
+    let hr = world.hit(&r, 0.0, f64::MAX);
     if hr.has_hit() {
         return Color::new((hr.normal()+1.0)*0.5)
     }
@@ -68,7 +71,9 @@ fn main() {
 
     // -- WORLD --
     let mut world : HittableList = HittableList::new();
-    world.add(&TEST_SPHERE);
+    world.add(&TEST_SPHERE_1);
+    world.add(&TEST_SPHERE_2);
+    world.add(&GROUND);
 
     // -- RENDER --
     output_buffer.write(PPM_CONFIG.as_bytes()).ok();
@@ -78,7 +83,7 @@ fn main() {
             let ray_dir: Vec3 = (pixel_center-ORIGIN).normalized();
             let r = Ray::new(ORIGIN, ray_dir);
 
-            let color: Color = ray_color(r);
+            let color: Color = ray_color(r,&world);
             write_to_file(&mut output_buffer, &color);
         }
     }
