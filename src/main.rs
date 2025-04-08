@@ -153,16 +153,23 @@ const WHITE : Color = Color{values:Vec3::new(1.0,1.0,1.0)};
 const BLUE : Color = Color{values:Vec3::new(0.5,0.7,1.0)};
 const RED : Color = Color{values:Vec3::new(1.0,0.0,0.0)};
 
-fn hit_sphere(center : Vec3, radius : &f64, ray : &Ray) -> bool {
+struct Sphere {
+    center : Vec3,
+    radius : f64
+}
+
+fn hit_sphere(s : &Sphere, ray : &Ray) -> bool {
     let a : f64 = Vec3::dot(ray.dir,ray.dir);
-    let b : f64 = -2.0*Vec3::dot(ray.dir, center-ray.origin);
-    let c : f64 = Vec3::dot(center-ray.origin,center-ray.origin)-radius*radius;
+    let b : f64 = -2.0*Vec3::dot(ray.dir, s.center-ray.origin);
+    let c : f64 = Vec3::dot(s.center-ray.origin,s.center-ray.origin)-s.radius*s.radius;
     let discriminant : f64 = b*b-4.0*a*c;
     return discriminant>=0.0
 }
 
+const TEST_SPHERE : Sphere = Sphere {center: Vec3::new(0.0,0.0,1.0), radius:0.5};
+
 fn ray_color(r : Ray) -> Color {
-    if hit_sphere(Vec3::new(0.0,0.0,-1.0), &0.5, &r) {
+    if hit_sphere(&TEST_SPHERE, &r) {
         return RED
     }
 
