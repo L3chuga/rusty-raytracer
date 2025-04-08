@@ -1,4 +1,4 @@
-use std::{fs::{File,OpenOptions}, io::{self, BufWriter, Write}};
+use std::{fs::{File,OpenOptions}, io::{self, BufWriter, Write}, mem::Discriminant};
 use const_format::formatcp;
 
 const OUTPUT_PATH : &str = "image.ppm";
@@ -38,16 +38,14 @@ impl Vec3 {
     }
 
     fn normalized(self) -> Vec3 {
-        let vector_normalized = self.clone();
-        let norm : f64 = self.norm();
-        vector_normalized*(1f64/norm)
+        self.clone()/self.norm()
     }
 
-    fn dot(u : Vec3, v : Vec3) -> f64 {
+    const fn dot(u : Vec3, v : Vec3) -> f64 {
         u.x*v.x+u.y*v.y+u.z*v.z
     }
 
-    fn cross(u : Vec3, v : Vec3) -> Vec3 {
+    const fn cross(u : Vec3, v : Vec3) -> Vec3 {
         Vec3 {
             x : u.y*v.z-u.z*u.y,
             y : u.z*v.x-u.x*v.z,
@@ -153,8 +151,21 @@ impl Color {
 
 const WHITE : Color = Color{values:Vec3::new(1.0,1.0,1.0)};
 const BLUE : Color = Color{values:Vec3::new(0.5,0.7,1.0)};
+const RED : Color = Color{values:Vec3::new(1.0,0.0,0.0)};
+
+fn hit_sphere(center : Vec3, radius : &f64, ray : &Ray) -> bool {
+    let a : f64 = Vec3::dot(ray.dir,ray.dir);
+    let b : f64 = -2.0*Vec3::dot(ray.dir, center-ray.origin);
+    let c : f64 = Vec3::dot(center-ray.origin,center-ray.origin)-radius*radius;
+    let discriminant : f64 = b*b-4.0*a*c;
+    return discriminant>=0.0
+}
 
 fn ray_color(r : Ray) -> Color {
+    if hit_sphere(Vec3::new(0.0,0.0,-1.0), &0.5, &r) {
+        return RED
+    }
+
     let lamda : f64 = 0.5*(r.dir.y + 1.0);
     return Color::new(WHITE.values*(1.0-lamda)+BLUE.values*lamda);
 }
