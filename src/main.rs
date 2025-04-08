@@ -1,23 +1,21 @@
-use std::{fs, io::{self, BufWriter, Write}};
+use std::{fs::{File,OpenOptions}, io::{self, BufWriter, Write}};
 use const_format::formatcp;
 
 const OUTPUT_PATH : &str = "image.ppm";
-const WIDTH : i32 = 10;
-const HEIGHT : i32 = 10;
+const ASPECT_RATIO : f64 = 16.0/9.0;
+const WIDTH : i32 = 400;
+const HEIGHT : i32 = ((WIDTH as f64)/ASPECT_RATIO) as i32;
+const VIEWPORT_HEIGHT : f64 = 2.0;
+const VIEWPORT_WIDTH : f64 = VIEWPORT_HEIGHT*((WIDTH as f64)/(HEIGHT as f64));
+const ORIGIN : Vec3 = Vec3 {x:0.0, y:0.0, z:0.0};
+const FOCAL_LENGHT : f64 = 1.0;
+
 const RGB_MAX : i32 = 255;
 const PPM_CONFIG : &str = formatcp!("P3\n{WIDTH} {HEIGHT}\n{RGB_MAX}\n");
 
-fn write_to_file(mut output_buffer : BufWriter<fs::File>){
-    output_buffer.write(PPM_CONFIG.as_bytes()).ok();
-    for _ in 0..HEIGHT {
-        let mut pixel_row_rgb : String = String::new();
-        for _ in 0..WIDTH {
-            let (r,g,b) = (255,255,255);
-            pixel_row_rgb.push_str(&format!("{r} {g} {b} "));
-        }
-        pixel_row_rgb.push('\n');
-        output_buffer.write(pixel_row_rgb.as_bytes()).ok();
-    }
+
+fn write_to_file(output_buffer : &mut BufWriter<File>, c : &Color){
+    output_buffer.write(&format!("{} {} {}\n",c.r(),c.g(),c.b()).as_bytes()).ok();
 }
 #[derive(Clone, Copy)]
 struct Vec3 {
@@ -27,7 +25,7 @@ struct Vec3 {
 }
 
 impl Vec3 {
-    fn new(x : f64, y : f64, z : f64) -> Vec3 {
+    const fn new(x : f64, y : f64, z : f64) -> Vec3 {
         Vec3 {x,y,z}
     }
 
@@ -94,6 +92,14 @@ impl std::ops::Mul<f64> for Vec3 {
     }
 }
 
+impl std::ops::Div<f64> for Vec3 {
+    type Output = Vec3;
+
+    fn div(self, scalar : f64) -> Vec3 {
+        self*(1.0/scalar)
+    }
+}
+
 impl std::ops::Add for Vec3 {
     type Output = Vec3;
     fn add(self, other : Vec3) -> Vec3 {
@@ -101,6 +107,16 @@ impl std::ops::Add for Vec3 {
             x : self.x+other.x,
             y : self.y+other.y,
             z : self.z+other.z
+        }
+    }
+}
+impl std::ops::Sub for Vec3 {
+    type Output = Vec3;
+    fn sub(self, other : Vec3) -> Vec3 {
+        Vec3 {
+            x : self.x-other.x,
+            y : self.y-other.y,
+            z : self.z-other.z
         }
     }
 }
@@ -115,10 +131,60 @@ impl std::ops::Mul for Vec3 {
     }
 }
 
+struct Color {
+    values : Vec3
+}
+
+impl Color {
+    const fn new(val : Vec3) -> Self {
+        Color {values : val}
+    }
+
+    fn r(&self) -> i16 {
+        (255.999*self.values.x) as i16
+    }
+    fn g(&self) -> i16 {
+        (255.999*self.values.y) as i16
+    }
+    fn b(&self) -> i16 {
+        (255.999*self.values.z) as i16
+    }
+}
+
+const WHITE : Color = Color{values:Vec3::new(1.0,1.0,1.0)};
+const BLUE : Color = Color{values:Vec3::new(0.5,0.7,1.0)};
+
+fn ray_color(r : Ray) -> Color {
+    let lamda : f64 = 0.5*(r.dir.y + 1.0);
+    return Color::new(WHITE.values*(1.0-lamda)+BLUE.values*lamda);
+}
+
 fn main() {
-    let output_file = fs::OpenOptions::new().write(true).truncate(true).create(true).open(OUTPUT_PATH).expect("Unable to open file.");
-    let output_buffer = io::BufWriter::new(output_file);
-    let test : Vec3 = Vec3::new(1.5f64, 0f64, 0f64);
+    let output_file: File = OpenOptions::new().write(true).truncate(true).create(true).open(OUTPUT_PATH).expect("Unable to open file.");
+    let mut output_buffer: BufWriter<File> = io::BufWriter::new(output_file);
+    output_buffer.write(PPM_CONFIG.as_bytes()).ok();
+
+    let viewport_u: Vec3 = Vec3::new(VIEWPORT_WIDTH,0.0,0.0);
+    let viewport_v: Vec3 = Vec3::new(0.0,-VIEWPORT_HEIGHT,0.0);
+
+    let pixel_du: Vec3 = viewport_u/(WIDTH as f64);
+    let pixel_dv: Vec3 = viewport_v/(HEIGHT as f64);
     
-    //write_to_file(output_buffer);
+    let pixel_origin: Vec3 = ORIGIN 
+        - Vec3::new(0.0,0.0,FOCAL_LENGHT)
+        - viewport_u/2.0
+        - viewport_v/2.0
+        + pixel_du/2.0
+        + pixel_dv/2.0;
+
+    for j in 0..HEIGHT {
+        for i in 0..WIDTH {
+            let pixel_center: Vec3 = pixel_origin + pixel_du*(i as f64) + pixel_dv*(j as f64); 
+            let ray_dir: Vec3 = (pixel_center-ORIGIN).normalized();
+            let r = Ray {origin : ORIGIN, dir : ray_dir};
+
+            let color: Color = ray_color(r);
+            write_to_file(&mut output_buffer, &color);
+        }
+    }
 }
