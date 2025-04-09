@@ -12,7 +12,7 @@ use crate::camera::*;
 
 const OUTPUT_PATH : &str = "image.ppm";
 const ASPECT_RATIO : f64 = 16.0/9.0;
-const WIDTH : i32 = 300;
+const WIDTH : i32 = 400;
 const HEIGHT : i32 = ((WIDTH as f64)/ASPECT_RATIO) as i32;
 pub const RGB_MAX : i32 = 255;
 

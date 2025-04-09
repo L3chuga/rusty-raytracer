@@ -1,4 +1,4 @@
-use crate::RGB_MAX;
+use crate::{utilities::UNIT, RGB_MAX};
 
 #[derive(Clone, Copy)]
 pub struct Vec3 {
@@ -127,22 +127,18 @@ pub struct Color {
     values : Vec3
 }
 
-fn truncate_range(x : i16) -> i16 {
-    i16::max(i16::min(x,RGB_MAX as i16),0)
-}
-
 impl Color {
     pub const fn new(v : Vec3) -> Self {
         Color {values : v}
     }
     pub fn r(&self) -> i16 {
-        truncate_range((255.999*self.values.x()) as i16)
+        (255.999*UNIT.clamp(self.values.x)) as i16
     }
     pub fn g(&self) -> i16 {
-        truncate_range((255.999*self.values.y()) as i16)
+        (255.999*UNIT.clamp(self.values.y)) as i16
     }
     pub fn b(&self) -> i16 {
-        truncate_range((255.999*self.values.z()) as i16)
+        (255.999*UNIT.clamp(self.values.z)) as i16
     }
 
     pub fn values(self) -> Vec3 {self.values}
