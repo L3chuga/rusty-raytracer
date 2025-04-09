@@ -3,50 +3,25 @@ use const_format::formatcp;
 
 mod vec3;
 mod hittable;
+mod camera;
+mod utilities;
+
 use crate::vec3::*;
 use crate::hittable::*;
+use crate::camera::*;
 
 const OUTPUT_PATH : &str = "image.ppm";
 const ASPECT_RATIO : f64 = 16.0/9.0;
-const WIDTH : i32 = 400;
+const WIDTH : i32 = 300;
 const HEIGHT : i32 = ((WIDTH as f64)/ASPECT_RATIO) as i32;
-const VIEWPORT_HEIGHT : f64 = 2.0;
-const VIEWPORT_WIDTH : f64 = VIEWPORT_HEIGHT*((WIDTH as f64)/(HEIGHT as f64));
-const ORIGIN : Vec3 = Vec3::new(0.0, 0.0, 0.0);
-const FOCAL_LENGHT : f64 = 1.0;
-
 pub const RGB_MAX : i32 = 255;
+
 const PPM_CONFIG : &str = formatcp!("P3\n{WIDTH} {HEIGHT}\n{RGB_MAX}\n");
-
-
-fn write_to_file(output_buffer : &mut BufWriter<File>, c : &Color){
-    output_buffer.write(&format!("{} {} {}\n",c.r(),c.g(),c.b()).as_bytes()).ok();
-}
-
-
-
-const WHITE : Color = Color::new(Vec3::new(1.0,1.0,1.0));
-const BLUE : Color = Color::new(Vec3::new(0.5,0.7,1.0));
-const RED : Color = Color::new(Vec3::new(1.0,0.0,0.0));
-
-
-
-
 
 const TEST_SPHERE_1 : Sphere = Sphere::new(Vec3::new(-1.0,0.0,-2.0), 0.5);
 const TEST_SPHERE_2 : Sphere = Sphere::new(Vec3::new(1.0,0.0,-2.0), 0.5);
 const GROUND : Sphere = Sphere::new(Vec3::new(0.0,-100.5,-1.0),100.0);
 
-
-fn ray_color(r : Ray, world : &HittableList) -> Color {
-    let hr = world.hit(&r, 0.0, f64::MAX);
-    if hr.has_hit() {
-        return Color::new((hr.normal()+1.0)*0.5)
-    }
-
-    let lamda : f64 = 0.5*(r.dir().y() + 1.0);
-    return Color::new(WHITE.values()*(1.0-lamda)+BLUE.values()*lamda);
-}
 
 fn main() {
 
@@ -56,18 +31,7 @@ fn main() {
 
 
     // -- CAMERA --
-    let viewport_u: Vec3 = Vec3::new(VIEWPORT_WIDTH,0.0,0.0);
-    let viewport_v: Vec3 = Vec3::new(0.0,-VIEWPORT_HEIGHT,0.0);
-
-    let pixel_du: Vec3 = viewport_u/(WIDTH as f64);
-    let pixel_dv: Vec3 = viewport_v/(HEIGHT as f64);
-    
-    let pixel_origin: Vec3 = ORIGIN 
-        - Vec3::new(0.0,0.0,FOCAL_LENGHT)
-        - viewport_u/2.0
-        - viewport_v/2.0
-        + pixel_du/2.0
-        + pixel_dv/2.0;
+    let camera : Camera = Camera::new(PPM_CONFIG,WIDTH,ASPECT_RATIO);
 
     // -- WORLD --
     let mut world : HittableList = HittableList::new();
@@ -76,15 +40,5 @@ fn main() {
     world.add(&GROUND);
 
     // -- RENDER --
-    output_buffer.write(PPM_CONFIG.as_bytes()).ok();
-    for j in 0..HEIGHT {
-        for i in 0..WIDTH {
-            let pixel_center: Vec3 = pixel_origin + pixel_du*(i as f64) + pixel_dv*(j as f64); 
-            let ray_dir: Vec3 = (pixel_center-ORIGIN).normalized();
-            let r = Ray::new(ORIGIN, ray_dir);
-
-            let color: Color = ray_color(r,&world);
-            write_to_file(&mut output_buffer, &color);
-        }
-    }
+    camera.render(&mut output_buffer, &world);
 }

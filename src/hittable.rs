@@ -1,4 +1,7 @@
 use crate::vec3::*;
+use crate::utilities::*;
+
+const NOT_HIT : HitRecord = HitRecord {has_hit:false,point:Vec3::new(0.0,0.0,0.0),normal:Vec3::new(0.0,0.0,0.0),t:0.0,front_face:false};
 
 pub struct HitRecord {
     has_hit : bool,
@@ -7,8 +10,6 @@ pub struct HitRecord {
     t : f64,
     front_face : bool
 }
-
-const NOT_HIT : HitRecord = HitRecord {has_hit:false,point:Vec3::new(0.0,0.0,0.0),normal:Vec3::new(0.0,0.0,0.0),t:0.0,front_face:false};
 
 impl HitRecord {
     fn set_face_normal(&mut self, r : &Ray, outward_normal : &Vec3) {
@@ -20,14 +21,13 @@ impl HitRecord {
         }
     }
 
-
-    pub fn has_hit(&self) -> bool {self.has_hit}
-    pub fn point(&self) -> Vec3 {self.point}
-    pub fn normal(&self) -> Vec3 {self.normal}   
+    pub const fn has_hit(&self) -> bool {self.has_hit}
+    pub const fn point(&self) -> Vec3 {self.point}
+    pub const fn normal(&self) -> Vec3 {self.normal}   
 }
 
 pub trait Hittable {
-    fn hit(&self, r : &Ray, t_min : f64, t_max : f64) -> HitRecord;    
+    fn hit(&self, r : &Ray, ray_t : Interval) -> HitRecord;    
 }
 
 pub struct Sphere {
@@ -42,7 +42,7 @@ impl Sphere {
 }
 
 impl Hittable for Sphere {
-    fn hit(&self, r : &Ray, t_min : f64, t_max : f64) -> HitRecord {
+    fn hit(&self, r : &Ray, ray_t : Interval) -> HitRecord {
         let oc = self.center-r.origin();
         let a : f64 = r.dir().norm_squared();
         let h : f64 = Vec3::dot(r.dir(), oc);
@@ -55,9 +55,9 @@ impl Hittable for Sphere {
         
         let dis_sqrt: f64 = f64::sqrt(dis);
         let mut root: f64 = (h - dis_sqrt) / a;
-        if root <= t_min || t_max <= root {
+        if !ray_t.surrounds(root) {
             root = (h + dis_sqrt) / a;
-            if root <= t_min || t_max <= root {
+            if !ray_t.surrounds(root) {
                 return NOT_HIT
             }
         }
@@ -87,13 +87,13 @@ impl<'a> HittableList<'a> {
 }   
 
 impl<'a> Hittable for HittableList<'a> {
-    fn hit(&self, r : &Ray, t_min : f64, t_max : f64) -> HitRecord {
+    fn hit(&self, r : &Ray, ray_t : Interval) -> HitRecord {
         let mut hr : HitRecord = NOT_HIT;
         let mut hit_anything : bool = false;
-        let mut closest_so_far : f64 = t_max;
+        let mut closest_so_far : f64 = ray_t.max();
 
         for i in 0..self.objects.len() {
-            let obj_hr = self.objects[i].hit(r, t_min, closest_so_far);
+            let obj_hr = self.objects[i].hit(r, Interval::new(ray_t.min(),closest_so_far));
             if obj_hr.has_hit {
                 hit_anything = true;
                 closest_so_far = obj_hr.t;
