@@ -1,4 +1,4 @@
-use std::{f64::INFINITY};
+use std::f64::{consts::PI, INFINITY};
 use crate::vec3::*;
 
 pub const EMPTY : Interval = Interval::new(INFINITY,-INFINITY);
@@ -9,8 +9,9 @@ pub const ZERO : Vec3 = Vec3::new(0.0, 0.0, 0.0);
 
 pub const WHITE : Color = Color::new(Vec3::new(1.0,1.0,1.0));
 pub const BLACK : Color = Color::new(Vec3::new(0.0,0.0,0.0));
-pub const BLUE : Color = Color::new(Vec3::new(0.5,0.7,1.0));
+pub const SKY_BLUE : Color = Color::new(Vec3::new(0.5,0.7,1.0));
 pub const RED : Color = Color::new(Vec3::new(1.0,0.0,0.0));
+pub const BLUE : Color = Color::new(Vec3::new(0.0,0.0,1.0));
 pub const GRAY : Color = Color::new(Vec3::new(0.5,0.5,0.5));
 
 
@@ -38,4 +39,8 @@ impl Interval {
         if self.max<x {return self.max}
         return x
     }
+}
+
+pub const fn degrees_to_radians(degrees : f64) -> f64 {
+    return degrees * PI/180.0;
 }

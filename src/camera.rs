@@ -1,5 +1,5 @@
 use std::{f64::INFINITY, fs::File, io::{BufWriter, Write}};
-use crate::hittable::*;
+use crate::{hittable::*, utilities};
 use crate::vec3::*;
 use crate::utilities::*;
 
@@ -16,6 +16,8 @@ pub struct Camera {
     samples_per_pixel : i32,
     max_depth : i32,
     vfov : f64,
+    look_at : Vec3,
+    vup : Vec3,
 
     viewport_height : f64,
     viewport_width : f64,
@@ -26,7 +28,10 @@ pub struct Camera {
     pixel_du : Vec3,
     pixel_dv : Vec3,    
     pixel_origin : Vec3,
-    pixel_sample_scale : f64
+    pixel_sample_scale : f64,
+    u : Vec3,
+    v : Vec3,
+    w : Vec3,
 }
 
 impl Camera {
@@ -35,37 +40,51 @@ impl Camera {
             image_width, // Initial Values
             aspect_ratio,
             ppm_config: ppm_config.to_string(),
-            viewport_height: 2.0,
-            focal_lenght: 1.0,
-            origin: ZERO,
-            samples_per_pixel: 5,
-            max_depth : 10,
-            vfov : 90.0,
+            origin: Vec3::new(-2.0,2.0,1.0),
+            look_at: Vec3::new(0.0,0.0,-1.0),
+            vup: Vec3::new(0.0,1.0,0.0),
 
+            samples_per_pixel: 100,
+            max_depth : 50,
+            vfov : 20.0,
+
+            focal_lenght: 0.0,
+            viewport_height: 0.0,
             viewport_width: 0.0, // Derived values
             image_height: 0,
             pixel_du: ZERO,
             pixel_dv: ZERO, 
             pixel_origin: ZERO,
-            pixel_sample_scale : 0.0
+            pixel_sample_scale : 0.0,
+            u: ZERO,
+            v: ZERO,
+            w: ZERO 
         };
+
+        camera.focal_lenght = (camera.origin-camera.look_at).norm();
 
         camera.image_height = ((camera.image_width as f64)/camera.aspect_ratio) as i32;
 
+        let theta: f64 = degrees_to_radians(camera.vfov);
+        let h = f64::tan(theta/2.0);
+        camera.viewport_height = 2.0*h*camera.focal_lenght;
         camera.viewport_width = camera.viewport_height*((camera.image_width as f64)/(camera.image_height as f64));
         
-        let viewport_u: Vec3 = Vec3::new(camera.viewport_width,0.0,0.0);
-        let viewport_v: Vec3 = Vec3::new(0.0,-camera.viewport_height,0.0);
+        camera.w = (camera.origin-camera.look_at).normalized();
+        camera.u = Vec3::cross(&camera.vup,&camera.w).normalized();
+        camera.v = Vec3::cross(&camera.w,&camera.u);
+
+        let viewport_u: Vec3 = camera.u*camera.viewport_width;
+        let viewport_v: Vec3 = camera.v*camera.viewport_height*(-1.0);
 
         camera.pixel_du = viewport_u/(camera.image_width as f64);
         camera.pixel_dv = viewport_v/(camera.image_height as f64);
         
-        camera.pixel_origin = camera.origin
-            - Vec3::new(0.0,0.0,camera.focal_lenght)
+        let viewport_upper_left: Vec3 = camera.origin
+            - camera.w*(camera.focal_lenght)
             - viewport_u/2.0
-            - viewport_v/2.0
-            + camera.pixel_du/2.0
-            + camera.pixel_dv/2.0;
+            - viewport_v/2.0;
+        camera.pixel_origin = viewport_upper_left+(camera.pixel_du+camera.pixel_dv)/2.0;
 
         camera.pixel_sample_scale = 1.0/(camera.samples_per_pixel as f64);
 
@@ -118,6 +137,6 @@ impl Camera {
         }
     
         let lamda : f64 = 0.5*(r.dir().y() + 1.0);
-        return Color::new(WHITE.values()*(1.0-lamda)+BLUE.values()*lamda);
+        return Color::new(WHITE.values()*(1.0-lamda)+SKY_BLUE.values()*lamda);
     }
 }
