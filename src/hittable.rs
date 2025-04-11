@@ -1,20 +1,20 @@
 use crate::material;
-use crate::material::VoidMaterial;
 use crate::vec3::*;
 use crate::utilities::*;
 use crate::material::Material;
-use std::sync::Arc;
 
-pub struct HitRecord<'a> {
+const NOT_HIT : HitRecord = HitRecord {has_hit:false,point:Vec3::new(0.0,0.0,0.0),normal:Vec3::new(0.0,0.0,0.0),t:0.0,front_face:false, material: Material::Void};
+
+pub struct HitRecord {
     has_hit : bool,
     point : Vec3,
     normal : Vec3,
     t : f64,
     front_face : bool,
-    material : &'a dyn Material
+    material : Material
 }
 
-impl<'a> HitRecord<'a> {
+impl HitRecord {
     fn set_face_normal(&mut self, r : &Ray, outward_normal : &Vec3) {
         self.front_face = Vec3::dot(&r.dir(),outward_normal) < 0.0;
         if self.front_face {
@@ -28,26 +28,26 @@ impl<'a> HitRecord<'a> {
     pub const fn front_face(&self) -> bool {self.front_face}
     pub const fn point(&self) -> Vec3 {self.point}
     pub const fn normal(&self) -> Vec3 {self.normal}  
-    pub const fn material(&self) -> &dyn Material {self.material}
+    pub const fn material(&self) -> Material {self.material}
 }
 
 pub trait Hittable {
     fn hit(&self, r : &Ray, ray_t : Interval) -> HitRecord;    
 }
 
-pub struct Sphere<'a> {
+pub struct Sphere {
     center : Vec3,
     radius : f64,
-    material : &'a dyn Material
+    material : Material
 }
 
-impl<'a> Sphere<'a> {
-    pub const fn new(center : Vec3, radius : f64, material : &'a dyn Material) -> Sphere {
+impl Sphere {
+    pub const fn new(center : Vec3, radius : f64, material : Material) -> Sphere {
         Sphere {center, radius, material}
     }
 }
 
-impl<'a> Hittable for Sphere<'a> {
+impl Hittable for Sphere {
     fn hit(&self, r : &Ray, ray_t : Interval) -> HitRecord {
         let oc = self.center-r.origin();
         let a : f64 = r.dir().norm_squared();
@@ -56,7 +56,7 @@ impl<'a> Hittable for Sphere<'a> {
         let dis : f64 = h*h - a*c;
         
         if dis<0.0 {
-            return HitRecord {has_hit:false,point:Vec3::new(0.0,0.0,0.0),normal:Vec3::new(0.0,0.0,0.0),t:0.0,front_face:false, material: &VoidMaterial};
+            return NOT_HIT
         } 
         
         let dis_sqrt: f64 = f64::sqrt(dis);
@@ -64,7 +64,7 @@ impl<'a> Hittable for Sphere<'a> {
         if !ray_t.surrounds(root) {
             root = (h + dis_sqrt) / a;
             if !ray_t.surrounds(root) {
-                return HitRecord {has_hit:false,point:Vec3::new(0.0,0.0,0.0),normal:Vec3::new(0.0,0.0,0.0),t:0.0,front_face:false, material: &VoidMaterial};
+                return NOT_HIT;
             }
         }
 
@@ -94,7 +94,7 @@ impl HittableList {
 
 impl Hittable for HittableList {
     fn hit(&self, r : &Ray, ray_t : Interval) -> HitRecord {
-        let mut hr : HitRecord = HitRecord {has_hit:false,point:Vec3::new(0.0,0.0,0.0),normal:Vec3::new(0.0,0.0,0.0),t:0.0,front_face:false, material: &VoidMaterial};
+        let mut hr : HitRecord = NOT_HIT;
         let mut hit_anything : bool = false;
         let mut closest_so_far : f64 = ray_t.max();
 

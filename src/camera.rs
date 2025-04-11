@@ -44,7 +44,7 @@ impl Camera {
             look_at: Vec3::new(0.0,0.0,0.0),
             vup: Vec3::new(0.0,1.0,0.0),
 
-            samples_per_pixel: 30,
+            samples_per_pixel: 10,
             max_depth : 5,
             vfov : 20.0,
 
