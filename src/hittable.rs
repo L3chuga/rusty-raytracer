@@ -1,19 +1,23 @@
+use crate::material;
+use crate::material::VoidMaterial;
 use crate::vec3::*;
 use crate::utilities::*;
+use crate::material::Material;
 
-const NOT_HIT : HitRecord = HitRecord {has_hit:false,point:Vec3::new(0.0,0.0,0.0),normal:Vec3::new(0.0,0.0,0.0),t:0.0,front_face:false};
+const NOT_HIT : HitRecord = HitRecord {has_hit:false,point:Vec3::new(0.0,0.0,0.0),normal:Vec3::new(0.0,0.0,0.0),t:0.0,front_face:false, material: &VoidMaterial};
 
-pub struct HitRecord {
+pub struct HitRecord<'a> {
     has_hit : bool,
     point : Vec3,
     normal : Vec3,
     t : f64,
-    front_face : bool
+    front_face : bool,
+    material : &'a dyn Material
 }
 
-impl HitRecord {
+impl<'a> HitRecord<'a> {
     fn set_face_normal(&mut self, r : &Ray, outward_normal : &Vec3) {
-        self.front_face = Vec3::dot(r.dir(),*outward_normal) < 0.0;
+        self.front_face = Vec3::dot(&r.dir(),outward_normal) < 0.0;
         if self.front_face {
             self.normal = *outward_normal;
         } else {
@@ -22,30 +26,33 @@ impl HitRecord {
     }
 
     pub const fn has_hit(&self) -> bool {self.has_hit}
+    pub const fn front_face(&self) -> bool {self.front_face}
     pub const fn point(&self) -> Vec3 {self.point}
-    pub const fn normal(&self) -> Vec3 {self.normal}   
+    pub const fn normal(&self) -> Vec3 {self.normal}  
+    pub const fn material(&self) -> &dyn Material {self.material}
 }
 
 pub trait Hittable {
     fn hit(&self, r : &Ray, ray_t : Interval) -> HitRecord;    
 }
 
-pub struct Sphere {
+pub struct Sphere<'a> {
     center : Vec3,
-    radius : f64
+    radius : f64,
+    material : &'a dyn Material
 }
 
-impl Sphere {
-    pub const fn new(center : Vec3, r : f64) -> Sphere {
-        Sphere {center : center, radius : r}
+impl<'a> Sphere<'a> {
+    pub const fn new(center : Vec3, radius : f64, material : &'a dyn Material) -> Sphere<'a> {
+        Sphere {center, radius, material}
     }
 }
 
-impl Hittable for Sphere {
+impl<'a> Hittable for Sphere<'a> {
     fn hit(&self, r : &Ray, ray_t : Interval) -> HitRecord {
         let oc = self.center-r.origin();
         let a : f64 = r.dir().norm_squared();
-        let h : f64 = Vec3::dot(r.dir(), oc);
+        let h : f64 = Vec3::dot(&r.dir(), &oc);
         let c : f64 = oc.norm_squared()-self.radius*self.radius;
         let dis : f64 = h*h - a*c;
         
@@ -62,7 +69,7 @@ impl Hittable for Sphere {
             }
         }
 
-        let mut hr : HitRecord = HitRecord { has_hit: true, point: r.at(root), normal: Vec3::new(0.0,0.0,0.0), t: root, front_face: false };
+        let mut hr : HitRecord = HitRecord { has_hit: true, point: r.at(root), normal: Vec3::new(0.0,0.0,0.0), t: root, front_face: false , material : self.material};
         hr.t = root;
         hr.point = r.at(hr.t);
         let outward_normal = (hr.point-self.center)/self.radius;

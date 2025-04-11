@@ -3,22 +3,10 @@ use crate::hittable::*;
 use crate::vec3::*;
 use crate::utilities::*;
 
-fn ray_color(r : &Ray, world : &HittableList) -> Color {
-    let hr = world.hit(&r, Interval::new(0.0,INFINITY));
-    if hr.has_hit() {
-        return Color::new((hr.normal()+1.0)*0.5)
-    }
 
-    let lamda : f64 = 0.5*(r.dir().y() + 1.0);
-    return Color::new(WHITE.values()*(1.0-lamda)+BLUE.values()*lamda);
-}
 
 fn random_unit_square() -> Vec3 {
     return Vec3::new(rand::random::<f64>()-0.5,rand::random::<f64>()-0.5,0.0);
-}
-
-fn write_to_file(output_buffer : &mut BufWriter<File>, c : &Color){
-    output_buffer.write(&format!("{} {} {}\n",c.r(),c.g(),c.b()).as_bytes()).ok();
 }
 
 pub struct Camera {
@@ -26,6 +14,8 @@ pub struct Camera {
     aspect_ratio : f64,
     ppm_config : String,
     samples_per_pixel : i32,
+    max_depth : i32,
+    vfov : f64,
 
     viewport_height : f64,
     viewport_width : f64,
@@ -48,7 +38,9 @@ impl Camera {
             viewport_height: 2.0,
             focal_lenght: 1.0,
             origin: ZERO,
-            samples_per_pixel: 10,
+            samples_per_pixel: 5,
+            max_depth : 10,
+            vfov : 90.0,
 
             viewport_width: 0.0, // Derived values
             image_height: 0,
@@ -60,7 +52,6 @@ impl Camera {
 
         camera.image_height = ((camera.image_width as f64)/camera.aspect_ratio) as i32;
 
-        camera.origin = Vec3::new(0.0,0.0,0.0);
         camera.viewport_width = camera.viewport_height*((camera.image_width as f64)/(camera.image_height as f64));
         
         let viewport_u: Vec3 = Vec3::new(camera.viewport_width,0.0,0.0);
@@ -83,16 +74,27 @@ impl Camera {
 
     pub fn render(&self, output_buffer : &mut BufWriter<File>, world : &HittableList) {
         output_buffer.write(self.ppm_config.as_bytes()).ok();
+        let mut pixel_data : String = String::from("");
+        let mut k = 1; let ten_percent = self.image_height/10;
         for j in 0..self.image_height {
             for i in 0..self.image_width {
                 let mut pixel_color = Vec3::new(0.0,0.0,0.0);
                 for _ in 0..self.samples_per_pixel {
                     let r = self.get_ray(i,j);
-                    pixel_color = pixel_color+ray_color(&r,&world).values()*self.pixel_sample_scale;
+                    pixel_color = pixel_color+self.ray_color(&r,&world, self.max_depth).values()*self.pixel_sample_scale;
                 }
-                write_to_file(output_buffer, &Color::new(pixel_color));
+                pixel_color = Vec3::new(linear_to_gamma(pixel_color.x()),linear_to_gamma(pixel_color.y()),linear_to_gamma(pixel_color.z()));
+                let color = Color::new(pixel_color);
+                pixel_data += &format!("{} {} {} ",color.r(),color.g(),color.b());
+            }
+            pixel_data += "\n";
+            if j >= ten_percent*k {
+                let percent = k*10;
+                println!("{percent}% completed.");
+                k+=1;
             }
         }
+        output_buffer.write(pixel_data.as_bytes()).ok();
     }
 
     fn get_ray(&self, i : i32, j : i32) -> Ray {
@@ -102,5 +104,20 @@ impl Camera {
             + self.pixel_dv*(j as f64 + offset.y());
         let ray_dir: Vec3 = (pixel_sample-self.origin).normalized();
         return Ray::new(self.origin, ray_dir);
+    }
+
+    fn ray_color(&self, r : &Ray, world : &HittableList, depth : i32) -> Color {
+        if depth<=0 {return BLACK}
+
+        let hr = world.hit(&r, Interval::new(0.001,INFINITY));
+        if hr.has_hit() {
+            //return Color::new((hr.normal()+1.0)*0.5) NORMAL
+            //let bounce_dir = (hr.normal() + Vec3::random_outwards(&hr.normal())).normalized();
+            let (scattered, attenuation) = hr.material().scatter(r, &hr);
+            return self.ray_color(&scattered, world, depth-1)*attenuation;
+        }
+    
+        let lamda : f64 = 0.5*(r.dir().y() + 1.0);
+        return Color::new(WHITE.values()*(1.0-lamda)+BLUE.values()*lamda);
     }
 }

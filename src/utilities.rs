@@ -1,4 +1,4 @@
-use std::f64::INFINITY;
+use std::{f64::INFINITY};
 use crate::vec3::*;
 
 pub const EMPTY : Interval = Interval::new(INFINITY,-INFINITY);
@@ -11,7 +11,13 @@ pub const WHITE : Color = Color::new(Vec3::new(1.0,1.0,1.0));
 pub const BLACK : Color = Color::new(Vec3::new(0.0,0.0,0.0));
 pub const BLUE : Color = Color::new(Vec3::new(0.5,0.7,1.0));
 pub const RED : Color = Color::new(Vec3::new(1.0,0.0,0.0));
+pub const GRAY : Color = Color::new(Vec3::new(0.5,0.5,0.5));
 
+
+pub fn linear_to_gamma(x : f64) -> f64 {
+    if x > 0.0 {return f64::sqrt(x)}
+    else {return 0.0};
+}
 pub struct Interval {
     min : f64,
     max : f64
