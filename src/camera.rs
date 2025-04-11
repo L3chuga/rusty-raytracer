@@ -111,8 +111,7 @@ impl Camera {
                 let mut output_buffer: BufWriter<File> = io::BufWriter::new(output_file);
                 output_buffer.write(self.ppm_config.as_bytes()).ok();
                 output_buffer.write(pixel_data.as_bytes()).ok();
-                output_buffer.flush().ok();
-                output_buffer.write( ("0 0 0 ").repeat((self.image_width*(self.image_height-j)) as usize).as_bytes()).ok();
+                output_buffer.write( ("0 0 0 ").repeat((self.image_width*(self.image_height-j-1)) as usize).as_bytes()).ok();
 
                 let percent = k*10;
                 println!("{percent}% completed.");
