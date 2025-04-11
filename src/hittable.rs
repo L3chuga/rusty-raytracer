@@ -1,4 +1,3 @@
-use crate::material;
 use crate::vec3::*;
 use crate::utilities::*;
 use crate::material::Material;

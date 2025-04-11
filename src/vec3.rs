@@ -1,8 +1,4 @@
-use std::{process::Output, thread};
-
-use rand::random;
-
-use crate::{utilities::UNIT, RGB_MAX};
+use crate::utilities::UNIT;
 #[derive(Clone, Copy)]
 pub struct Vec3 {
     x : f64,
@@ -25,19 +21,19 @@ impl Vec3 {
         else {return v*(-1.0)}
     }
 
-    pub fn x(self) -> f64 {self.x}
-    pub fn y(self) -> f64 {self.y}
-    pub fn z(self) -> f64 {self.z}
+    pub fn x(&self) -> f64 {self.x}
+    pub fn y(&self) -> f64 {self.y}
+    pub fn z(&self) -> f64 {self.z}
 
-    pub fn norm_squared(self) -> f64 {
+    pub fn norm_squared(&self) -> f64 {
         self.x*self.x+self.y*self.y+self.z*self.z
     }
 
-    pub fn norm(self) -> f64 {
+    pub fn norm(&self) -> f64 {
         f64::sqrt(self.norm_squared())
     }
 
-    pub fn normalized(self) -> Vec3 {
+    pub fn normalized(&self) -> Vec3 {
         self.clone()/self.norm()
     }
 
@@ -144,46 +140,24 @@ impl Ray {
         Ray {origin : origin, dir : direction}
     }
 
-    pub fn at(self, t : f64) -> Vec3 {
+    pub fn at(&self, t : f64) -> Vec3 {
         self.origin+self.dir*t
     }
 
-    pub const fn origin(self) -> Vec3 {self.origin}
-    pub const fn dir(self) -> Vec3 {self.dir}
+    pub const fn origin(&self) -> Vec3 {self.origin}
+    pub const fn dir(&self) -> Vec3 {self.dir}
 }
 
-#[derive(Clone, Copy)]
-pub struct Color {
-    values : Vec3
-}
 
+pub type Color = Vec3;
 impl Color {
-    pub const fn new(v : Vec3) -> Self {
-        Color {values : v}
-    }
     pub fn r(&self) -> i16 {
-        (255.999*UNIT.clamp(self.values.x)) as i16
+        (255.999*UNIT.clamp(self.x)) as i16
     }
     pub fn g(&self) -> i16 {
-        (255.999*UNIT.clamp(self.values.y)) as i16
+        (255.999*UNIT.clamp(self.y)) as i16
     }
     pub fn b(&self) -> i16 {
-        (255.999*UNIT.clamp(self.values.z)) as i16
-    }
-
-    pub fn values(self) -> Vec3 {self.values}
-}
-
-impl std::ops::Mul<f64> for Color {
-    type Output = Color;
-    fn mul(self, scalar : f64) -> Color {
-        return Color::new(self.values()*scalar);
-    }
-}
-
-impl std::ops::Mul for Color {
-    type Output = Color;
-    fn mul(self, other: Self) -> Self::Output {
-        Color::new(self.values*other.values)
+        (255.999*UNIT.clamp(self.z)) as i16
     }
 }
