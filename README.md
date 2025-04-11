@@ -37,7 +37,7 @@ cargo build --release
 ```bash
 cargo run --release
 ```
-The rendered image will be saved as `image.ppm` in the project directory.
+The rendered image will be saved as `image.ppm` in the project directory. With the default configuration (low resolution and low detail) it takes around 11 seconds to render a full image in my low spec laptob. You can freely change the constants in main.rs to get better images at a larger rendering time cost. You can use online .ppm viewers to see the finished images but I recommend using a vscode .ppm extension as this way you can see the image being generated in real time.
 
 ## Acknowledgments
 
