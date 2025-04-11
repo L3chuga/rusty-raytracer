@@ -3,8 +3,7 @@ use crate::material::VoidMaterial;
 use crate::vec3::*;
 use crate::utilities::*;
 use crate::material::Material;
-
-const NOT_HIT : HitRecord = HitRecord {has_hit:false,point:Vec3::new(0.0,0.0,0.0),normal:Vec3::new(0.0,0.0,0.0),t:0.0,front_face:false, material: &VoidMaterial};
+use std::sync::Arc;
 
 pub struct HitRecord<'a> {
     has_hit : bool,
@@ -43,7 +42,7 @@ pub struct Sphere<'a> {
 }
 
 impl<'a> Sphere<'a> {
-    pub const fn new(center : Vec3, radius : f64, material : &'a dyn Material) -> Sphere<'a> {
+    pub const fn new(center : Vec3, radius : f64, material : &'a dyn Material) -> Sphere {
         Sphere {center, radius, material}
     }
 }
@@ -57,7 +56,7 @@ impl<'a> Hittable for Sphere<'a> {
         let dis : f64 = h*h - a*c;
         
         if dis<0.0 {
-            return NOT_HIT
+            return HitRecord {has_hit:false,point:Vec3::new(0.0,0.0,0.0),normal:Vec3::new(0.0,0.0,0.0),t:0.0,front_face:false, material: &VoidMaterial};
         } 
         
         let dis_sqrt: f64 = f64::sqrt(dis);
@@ -65,7 +64,7 @@ impl<'a> Hittable for Sphere<'a> {
         if !ray_t.surrounds(root) {
             root = (h + dis_sqrt) / a;
             if !ray_t.surrounds(root) {
-                return NOT_HIT
+                return HitRecord {has_hit:false,point:Vec3::new(0.0,0.0,0.0),normal:Vec3::new(0.0,0.0,0.0),t:0.0,front_face:false, material: &VoidMaterial};
             }
         }
 
@@ -79,23 +78,23 @@ impl<'a> Hittable for Sphere<'a> {
 }
 
 
-pub struct HittableList<'a> {
-    objects : Vec<&'a dyn Hittable>
+pub struct HittableList {
+    objects : Vec<Box<dyn Hittable>>
 }
 
-impl<'a> HittableList<'a> {
+impl HittableList {
     pub const fn new() -> Self {
         HittableList { objects: Vec::new() }
     }
 
-    pub fn add(&mut self, obj : &'a dyn Hittable) {
+    pub fn add(&mut self, obj : Box<dyn Hittable>) {
         self.objects.push(obj);
     }
 }   
 
-impl<'a> Hittable for HittableList<'a> {
+impl Hittable for HittableList {
     fn hit(&self, r : &Ray, ray_t : Interval) -> HitRecord {
-        let mut hr : HitRecord = NOT_HIT;
+        let mut hr : HitRecord = HitRecord {has_hit:false,point:Vec3::new(0.0,0.0,0.0),normal:Vec3::new(0.0,0.0,0.0),t:0.0,front_face:false, material: &VoidMaterial};
         let mut hit_anything : bool = false;
         let mut closest_so_far : f64 = ray_t.max();
 

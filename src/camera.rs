@@ -40,12 +40,12 @@ impl Camera {
             image_width, // Initial Values
             aspect_ratio,
             ppm_config: ppm_config.to_string(),
-            origin: Vec3::new(-2.0,2.0,1.0),
-            look_at: Vec3::new(0.0,0.0,-1.0),
+            origin: Vec3::new(13.0,2.0,3.0),
+            look_at: Vec3::new(0.0,0.0,0.0),
             vup: Vec3::new(0.0,1.0,0.0),
 
-            samples_per_pixel: 100,
-            max_depth : 50,
+            samples_per_pixel: 30,
+            max_depth : 5,
             vfov : 20.0,
 
             focal_lenght: 0.0,
