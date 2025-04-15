@@ -12,7 +12,7 @@ impl Vec3 {
     }
     
     pub fn random_vec() -> Self {
-        return Vec3 {x:rand::random::<f64>(),y:rand::random::<f64>(),z:rand::random::<f64>()}
+        return Vec3 {x:rand::random::<f64>()-0.5,y:rand::random::<f64>()-0.5,z:rand::random::<f64>()-0.5}
     }
 
     pub fn random_outwards(normal : &Vec3) -> Vec3 {
@@ -43,7 +43,7 @@ impl Vec3 {
 
     pub const fn cross(u : &Vec3, v : &Vec3) -> Vec3 {
         Vec3 {
-            x : u.y*v.z-u.z*u.y,
+            x : u.y*v.z-u.z*v.y,
             y : u.z*v.x-u.x*v.z,
             z : u.x*v.y-u.y*v.x 
         }

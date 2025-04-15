@@ -135,11 +135,19 @@ impl Camera {
 
         let hr = world.hit(&r, Interval::new(0.001,INFINITY));
         if hr.has_hit() {
-            let (scattered, attenuation) = hr.material().scatter(r, &hr);
-            return self.ray_color(&scattered, world, depth-1)*attenuation;
+
+            let color_from_emission :Color = hr.material().emmited();
+            
+            if let Some((scattered, attenuation)) = hr.material().scatter(r, &hr) {
+                return color_from_emission + attenuation*self.ray_color(&scattered, world, depth-1)
+            }
+            else { 
+                return color_from_emission;
+            }
         } else {
             let lamda : f64 = 0.5*(r.dir().y() + 1.0);
             return WHITE*(1.0-lamda)+SKY_BLUE*lamda;
+            //return BLACK;
         }
     }
 }

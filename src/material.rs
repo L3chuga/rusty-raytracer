@@ -1,28 +1,31 @@
-use crate::{utilities::WHITE, vec3::Vec3, Color, HitRecord, Ray};
+use std::default;
+
+use crate::{utilities::*, vec3::Vec3, Color, HitRecord, Ray};
 
 
 #[derive(Clone, Copy)]
 pub enum Material {
     Void,
+    LightSource {intensity : Color},
     Lambertian {albedo : Color},
     Metal {albedo : Color, fuzz : f64},
     Dielectric {refraction_index : f64},
 }
 
 impl Material {
-    pub fn scatter(&self, r : &Ray, hr: &HitRecord) -> (Ray, Color) {
+    pub fn scatter(&self, r : &Ray, hr: &HitRecord) -> Option<(Ray, Color)> {
         match self {
-            Material::Void => (*r, WHITE),
+            Material::Void => Some((*r, WHITE)),
 
             Material::Lambertian {albedo} => {
                 let mut scatter_direction = (hr.normal()+Vec3::random_outwards(&hr.normal())).normalized();
                 if scatter_direction.near_zero() {scatter_direction = hr.normal();}
-                (Ray::new(hr.point(), scatter_direction), *albedo)
+                Some((Ray::new(hr.point(), scatter_direction), *albedo))
             },
 
             Material::Metal {albedo, fuzz} => {
                 let reflect_dir = r.dir().reflect(&hr.normal());
-                (Ray::new(hr.point(), reflect_dir.normalized()+Vec3::random_vec().normalized()*(*fuzz)), *albedo)
+                Some((Ray::new(hr.point(), reflect_dir.normalized()+Vec3::random_vec().normalized()*(*fuzz)), *albedo))
             },
 
             Material::Dielectric {refraction_index} => {
@@ -38,8 +41,19 @@ impl Material {
                 if cannot_refract || reflectance(cos_theta, ri)>rand::random::<f64>() {refract_dir = r.dir().reflect(&hr.normal())}
                 else {refract_dir = r.dir().refract(&hr.normal(), ri)}
 
-                (Ray::new(hr.point(), refract_dir), WHITE)
+                Some((Ray::new(hr.point(), refract_dir), WHITE))
             }
+
+            Material::LightSource { intensity: _ } => {
+                None
+            }
+        }
+    }
+
+    pub fn emmited(&self) -> Color {
+        match self {
+            Material::LightSource { intensity } => *intensity,
+            _ => BLACK,
         }
     }
 }

@@ -1,3 +1,5 @@
+use rand::distributions::uniform::UniformInt;
+
 use crate::vec3::*;
 use crate::utilities::*;
 use crate::material::Material;
@@ -73,6 +75,70 @@ impl Hittable for Sphere {
         let outward_normal = (hr.point-self.center)/self.radius;
         hr.set_face_normal(r, &outward_normal);
         return hr;
+    }
+}
+
+pub struct Triangle {
+    a : Vec3,
+    b : Vec3,
+    c : Vec3,
+    normal : Vec3,
+    d : f64,
+    material : Material 
+}
+
+impl Triangle {
+    pub fn new(a : Vec3, b : Vec3, c : Vec3, material : Material) -> Triangle {
+        let n = Vec3::cross(&(b-a), &(c-a));
+        let normal = n.normalized();
+        Triangle {a,b,c,normal, d : Vec3::dot(&normal,&a), material}
+    }
+}
+
+impl Hittable for Triangle {
+
+    fn hit(&self, r : &Ray, ray_t : Interval) -> HitRecord {
+        
+        let denom_ray = Vec3::dot(&self.normal, &r.dir());
+        if f64::abs(denom_ray) < 1e-8 {return NOT_HIT;}
+    
+        let t = (self.d - Vec3::dot(&(self.normal), &r.origin())) / denom_ray;
+        if !ray_t.contains(t) {return NOT_HIT;}
+
+        let p = r.at(t);
+
+        let v0 = self.c-self.a;
+        let v1 = self.b-self.a;
+        let v2 = p-self.a;
+        let d00 = Vec3::dot(&v0, &v0);
+        let d01 = Vec3::dot(&v0, &v1);
+        let d02 = Vec3::dot(&v0, &v2);
+        let d11 = Vec3::dot(&v1, &v1);
+        let d12 = Vec3::dot(&v1, &v2);
+        let inv_denom = 1.0 / (d00 * d11 - d01 * d01);
+        let u = (d11 * d02 - d01 * d12) * inv_denom;
+        let v = (d00 * d12 - d01 * d02) * inv_denom;
+
+        if !(u>=0.0 && v>=0.0 && u+v<=1.0) {return NOT_HIT;}
+
+        /* 
+        let ab = self.b-self.a;
+        let ac = self.c-self.a;
+        let pa = p-self.a;
+        let pb = p-self.b;
+        let pc = p-self.c;
+        
+        let area_abc = Vec3::cross(&ab,&ac).norm()*0.5;
+        let alpha = Vec3::cross(&pb, &pc).norm()*(2.0*area_abc);
+        let beta = Vec3::cross(&pc, &pa).norm()*(2.0*area_abc);
+        let gamma = 1.0 - alpha - beta;
+
+        if !(UNIT.contains(alpha) && UNIT.contains(beta) && UNIT.contains(gamma)) {return NOT_HIT;}
+        */
+
+        let mut hr : HitRecord = HitRecord { has_hit: true, point: r.at(t), normal: self.normal, t, front_face: true, material: self.material };
+        hr.set_face_normal(r, &self.normal);
+        hr
     }
 }
 
